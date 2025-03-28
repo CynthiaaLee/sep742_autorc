@@ -1,0 +1,11 @@
+{
+    "configurations": [
+      {
+        "request": "launch",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}"
+        }
+      }
+    ]
+  }
+  
