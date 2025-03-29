@@ -35,6 +35,8 @@ class VehicleController:
             raise RuntimeError("pigpio daemon not connected.")
 
         self.setup_gpio()
+        self.steering_center()
+        self.drive_neutral()
 
     def __enter__(self):
         return self
@@ -58,11 +60,11 @@ class VehicleController:
         print(f"Pin: {self.STEER_PIN}, Throttle: {duty}")
         self.pi.set_PWM_dutycycle(self.STEER_PIN, duty)
     
-    def drive_forward(self, speed=None):
+    def drive_forward(self):
         ms = SPEED_CONFIG['FORWARD_MS']
         self.set_throttle_ms(ms)
 
-    def drive_backward(self, speed=None):
+    def drive_backward(self):
         ms = SPEED_CONFIG['BACKWARD_MS']
         self.set_throttle_ms(ms)
 

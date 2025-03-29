@@ -7,7 +7,7 @@ class LaneDetector:
         
     def detect(self, frame):
         # 转换到HSV色彩空间
-        hsv = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         
         # 车道线掩码（假设为白色或黄色）
         lower_white = np.array([0, 0, 200])

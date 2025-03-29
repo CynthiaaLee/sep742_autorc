@@ -1,16 +1,11 @@
-import sys
-import os
 import time
-
-# Add the parent directory to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from camera.camera_stream import CameraStream
 
 def test_camera_stream():
-    with CameraStream(resolution=(640, 480)) as camera:
+    with CameraStream() as camera:
         print("Camera started, beginning recording test...")
-        
+
         try:
             # Start recording
             camera.start_recording()
