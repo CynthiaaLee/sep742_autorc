@@ -1,7 +1,6 @@
 import unittest
 import cv2
 import os
-import sys
 import glob
 from perception.traffic_sign_detection import TrafficSignDetector
 
@@ -62,6 +61,46 @@ class TestTrafficSignDetector(unittest.TestCase):
 
                 self.assertTrue(detected, 
                     f"{self.sign_type} sign was not detected in {base_name}")
+
+    def test_video_sign_detection(self):
+        video_path = os.path.join(os.path.dirname(__file__), '../models/test_video.mp4')
+        output_path = os.path.join(os.path.dirname(__file__), f'../output/{self.sign_type}_result_video.mp4')
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            self.fail(f"Failed to open video file: {video_path}")
+
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+        frame_idx = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            detected, bbox = self.detector.detect(frame)
+            if detected:
+                frame = self.detector.draw_detection(frame, bbox)
+
+                x, y, w, h = bbox
+                label = f"{self.sign_type.title()} Sign (w={w}, h={h})"
+                cv2.putText(frame, label, (x, y + h + 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 100, 255), 2)
+
+            out.write(frame)
+            frame_idx += 1
+            if frame_idx % 30 == 0:
+                print(f"Processed {frame_idx} frames")
+
+        cap.release()
+        out.release()
+        print(f"Video processed and saved to {output_path}")
+
 
 if __name__ == '__main__':
     unittest.main()

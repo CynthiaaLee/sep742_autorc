@@ -17,35 +17,47 @@ class DecisionMaker:
         # 遇到 stop sign
         if sign_data == 'stop':
             if self.current_state != VehicleState.STOPPED:
-                # 第一次检测到 stop sign，记录停止时间
                 self.stop_start_time = time.time()
                 self.current_state = VehicleState.STOPPED
-                return {'action': 'stop', 'steering': 0}
+                return self._build_decision('stop', 0)
             
-            # 检查是否已经停了三秒
             if time.time() - self.stop_start_time >= 3:
-                self.current_state = VehicleState.NORMAL  # 恢复正常状态
-                # 返回前进的动作
+                self.current_state = VehicleState.NORMAL
                 steering = lane_data if lane_data is not None else self.last_steering
                 self.last_steering = steering
-                return {'action': 'forward', 'steering': steering}
-            
-            # 如果未满三秒，继续保持停止状态
-            return {'action': 'stop', 'steering': 0}
+                return self._build_decision('forward', steering)
 
-        # 遇到红灯或黄灯
+            return self._build_decision('stop', 0)
+
+        # 红灯或黄灯
         if light_data in ['red', 'yellow']:
             self.current_state = VehicleState.STOPPED
-            return {'action': 'stop', 'steering': 0}
-            
-        # 遇到左转或右转标志
+            return self._build_decision('stop', 0)
+
+        # 左右转标志
         if sign_data in ['left', 'right']:
             self.current_state = VehicleState.TURNING
-            return {'action': 'turn', 'steering': 45 if sign_data == 'right' else -45}
-            
+            steering = 45 if sign_data == 'right' else -45
+            return self._build_decision('turn', steering)
+
         # 正常行驶
         self.current_state = VehicleState.NORMAL
-        # 平滑转向
         steering = lane_data if lane_data is not None else self.last_steering
         self.last_steering = steering
-        return {'action': 'forward', 'steering': steering}
+        return self._build_decision('forward', steering)
+
+    def _build_decision(self, action, steering_angle):
+        direction, strength = self._map_steering(steering_angle)
+        return {
+            'action': action,
+            'steering': steering_angle,
+            'direction': direction,
+            'strength': strength
+        }
+
+    def _map_steering(self, angle):
+        if abs(angle) < 5:
+            return 'straight', 0
+        direction = 'left' if angle < 0 else 'right'
+        strength = int((min(abs(angle), 45) / 45) * 100)
+        return direction, strength

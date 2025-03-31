@@ -1,12 +1,10 @@
 import logging
-from camera.camera_stream import CameraStream
-from control.vehicle_control import VehicleController
+# from control.vehicle_control import VehicleController
 from perception.lane_detection import LaneDetector
 from perception.traffic_sign_detection import TrafficSignDetector
 from perception.traffic_light_detection import TrafficLightDetector
 from logic.decision import DecisionMaker
 from utils.config import *
-import time
 from datetime import datetime
 import os
 import cv2
@@ -19,16 +17,22 @@ def save_frame(frame, directory="debug_frames"):
     print(f"[INFO] Saved frame to {filename}")
 
 class AutoDriver:
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, video_path=None):
         self.debug = debug
+        self.video_path = video_path
+        self.use_video = video_path is not None
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger('AutoDriver')
-        
+
+        self.frame_counter = 0
+        self.detection_interval = 1  # 每隔 N 帧检测一次（原来是10，改小点）
+
         try:
             self.camera = None
+            self.video_cap = None
             self.vehicle = None
             self.lane_detector = LaneDetector()
-            self.sign_detector = TrafficSignDetector()
+            self.stop_sign_detector = TrafficSignDetector('stop')
             self.light_detector = TrafficLightDetector()
             self.decision_maker = DecisionMaker()
         except Exception as e:
@@ -37,10 +41,29 @@ class AutoDriver:
 
     def __enter__(self):
         try:
-            self.camera_ctx = CameraStream()
-            self.vehicle_ctx = VehicleController()
-            self.vehicle = self.vehicle_ctx.__enter__()
-            self.camera = self.camera_ctx.__enter__()
+            if self.use_video:
+                self.video_cap = cv2.VideoCapture(self.video_path)
+                if not self.video_cap.isOpened():
+                    raise IOError(f"Cannot open video file: {self.video_path}")
+                self.frame_source = self.video_cap
+                self.fps = self.video_cap.get(cv2.CAP_PROP_FPS) or 30
+                self.width = int(self.video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                self.height = int(self.video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                # 初始化视频输出
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                os.makedirs("output", exist_ok=True)
+                self.video_writer = cv2.VideoWriter("output/autodrive_result.mp4", fourcc, self.fps, (self.width, self.height))
+            else:
+                from camera.camera_stream import CameraStream
+                self.camera_ctx = CameraStream()
+                self.camera = self.camera_ctx.__enter__()
+                self.frame_source = self.camera
+                self.fps = 30  # 默认摄像头帧率
+                self.video_writer = None
+
+            # self.vehicle_ctx = VehicleController()
+            # self.vehicle = self.vehicle_ctx.__enter__()
+
             return self
         except Exception as e:
             self.logger.error(f"Failed to initialize components: {str(e)}")
@@ -51,8 +74,12 @@ class AutoDriver:
         try:
             if self.vehicle:
                 self.vehicle_ctx.__exit__(exc_type, exc_val, exc_tb)
-            if self.camera:
+            if not self.use_video and self.camera:
                 self.camera_ctx.__exit__(exc_type, exc_val, exc_tb)
+            elif self.use_video and self.video_cap:
+                self.video_cap.release()
+            if self.video_writer:
+                self.video_writer.release()
         except Exception as e:
             self.logger.error(f"Error during cleanup: {str(e)}")
             raise
@@ -62,65 +89,118 @@ class AutoDriver:
         self.logger.info(f"debug mode: {self.debug}")
         try:
             while True:
-                frame = self.camera.capture_frame()
-                if frame is None:
-                    self.logger.warning("Failed to capture frame")
+                if self.use_video:
+                    ret, frame = self.frame_source.read()
+                    if not ret:
+                        self.logger.info("End of video or frame error.")
+                        break
+                else:
+                    frame = self.frame_source.capture_frame()
+                    if frame is None:
+                        self.logger.warning("Failed to capture frame")
+                        continue
+
+                self.frame_counter += 1
+
+                # 每 detection_interval 帧检测一次，其他帧跳过
+                if self.frame_counter % self.detection_interval != 0:
+                    # 仍写入原始帧（可选）
+                    if self.video_writer:
+                        self.video_writer.write(frame)
                     continue
 
+                if self.use_video:
+                    current_time_ms = self.frame_source.get(cv2.CAP_PROP_POS_MSEC)
+                    minutes = int(current_time_ms // 60000)
+                    seconds = int((current_time_ms % 60000) // 1000)
+                    self.logger.info(f"[Video Time] {minutes:02d}:{seconds:02d}")
+
                 # Perception
-                steering_angle = self.lane_detector.detect(frame)
-                sign = self.sign_detector.detect(frame)
+                steering_angle, lane_lines = self.lane_detector.detect(frame)
+                is_stop_sign, stop_bbox = self.stop_sign_detector.detect(frame)
                 light = self.light_detector.detect(frame)
 
+                is_close = False
+                if is_stop_sign and stop_bbox:
+                    _, _, w, _ = stop_bbox
+                    if w >= MIN_STOP_SIGN_WIDTH:  # 假设宽度大于 60 像素就很接近了
+                        is_close = True
+
                 if self.debug:
-                    self.logger.info(f"[Perception] Lane angle: {steering_angle}, Sign: {sign}, Light: {light}")
+                    self.logger.info(
+                        f"[Perception] Lane angle: {steering_angle:.2f}, is_stop_sign: {is_stop_sign}, "
+                        f"stop_sign_close: {is_close}, stop_bbox: {stop_bbox}, light: {light}"
+                    )
 
                 # Decision making
                 decision = self.decision_maker.make_decision(
-                    steering_angle, sign, light
+                    steering_angle, is_close, light
                 )
                 print(f"Decision: {decision}")
 
                 # Control execution
                 if decision['action'] == 'stop':
-                    self.vehicle.stop()
-                else: # TODO: slow down when turning
-                    self.vehicle.drive_forward()
-                    self.vehicle.adjust_steering(decision['steering'])
-                    
+                    # self.vehicle.stop()
+                    print("Stopping vehicle")
+                else:
+                    print("Driving vehicle")
+                    print(f"Steering: {decision['steering']:.2f} → {decision['direction']} ({decision['strength']}%)")
+                    # self.vehicle.drive_forward()
+                    # self.vehicle.adjust_steering(decision['direction'], decision['strength'])
 
+                # 可视化 & 输出视频帧
                 if self.debug:
-                    save_frame(frame)
-                    # import cv2
-                    # display_frame = frame.copy()
-                    # cv2.putText(display_frame, f"Steering: {decision['steering']}", (10, 30),
-                    #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                    # cv2.putText(display_frame, f"Action: {decision['action']}", (10, 60),
-                    #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                    # cv2.imshow("AutoDriver Debug View", display_frame)
-                    # if cv2.waitKey(1) & 0xFF == ord('q'):
-                    #     self.logger.info("Debug mode quit requested (press 'q')")
-                    #     break
+                    display_frame = frame.copy()
 
-                time.sleep(1)  # Control loop rate limiting
-                
+                    # Draw perception info
+                    cv2.putText(display_frame, f"Steering: {steering_angle:.2f}", (10, 60),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+
+                    if is_stop_sign:
+                        label = "Stop Sign (CLOSE)" if is_close else "Stop Sign (far)"
+                        cv2.putText(display_frame, label, (10, 100),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 100, 255), 2)
+
+                    cv2.putText(display_frame, f"Traffic Light: {light}", (10, 140),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+
+                    cv2.putText(display_frame, f"Action: {decision['action']}", (10, 180),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                    cv2.putText(display_frame, f"Direction: {decision['direction']}", (10, 220),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                    cv2.putText(display_frame, f"Strength: {decision['strength']}%", (10, 260), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+                    # ✅ Draw detected lane lines
+                    for (x1, y1, x2, y2) in lane_lines:
+                        cv2.line(display_frame, (x1, y1), (x2, y2), (0, 255, 255), 3)
+
+                    # 写入视频帧
+                    if self.video_writer:
+                        self.video_writer.write(display_frame)
+
+                    # 保存关键帧图像
+                    if is_close:
+                        save_frame(display_frame)
+
         except KeyboardInterrupt:
             self.logger.info("Manual stop triggered")
         except Exception as e:
             self.logger.error(f"Runtime error: {str(e)}")
         finally:
-            self.vehicle.stop()
+            # self.vehicle.stop()
             if self.debug:
-                import cv2
                 cv2.destroyAllWindows()
             self.logger.info("System shutdown complete")
 
-def run(debug=False):
-    with AutoDriver(debug=debug) as driver:
+def run(debug=False, video_path=None):
+    with AutoDriver(debug=debug, video_path=video_path) as driver:
         driver.start()
 
 if __name__ == '__main__':
     try:
-        run(debug=True)
+        # video_path = None  # ← 使用摄像头
+        video_path = "models/test_video.mp4"  # ← 或者换成你的视频路径
+        run(debug=True, video_path=video_path)
     except Exception as e:
         logging.error(f"System error: {str(e)}")
