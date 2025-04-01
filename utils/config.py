@@ -35,4 +35,4 @@ STEERING_CONFIG = {
 # BLUR_KERNEL_SIZE = (5, 5)
 # MIN_CONTOUR_AREA = 500
 
-MIN_STOP_SIGN_WIDTH = 155  # 根据你图像分辨率调整这个阈值
+MIN_STOP_SIGN_WIDTH = 152  # 根据你图像分辨率调整这个阈值

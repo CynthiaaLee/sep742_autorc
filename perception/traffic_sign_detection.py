@@ -1,6 +1,7 @@
 import cv2
 import os
-import numpy as np
+from utils.config import MIN_STOP_SIGN_WIDTH
+
 
 class TrafficSignDetector:
     def __init__(self, sign_type='stop'):
@@ -12,7 +13,8 @@ class TrafficSignDetector:
         self.model_files = {
             'stop': 'stop.xml',
             'left': 'left.xml',
-            'right': 'right.xml'
+            'right': 'right.xml',
+            'light': 'light.xml',
         }
         self.sign_type = sign_type
         
@@ -45,13 +47,19 @@ class TrafficSignDetector:
             minSize=(30, 30),
             flags=cv2.CASCADE_SCALE_IMAGE
         )
-        
+        is_sign = False
+        is_close = False
+
         # 如果检测到交通标志
         if len(signs) > 0:
+            is_sign = True
+            _, _, w, _ = signs[0].tolist()
+            if w >= MIN_STOP_SIGN_WIDTH:  # 假设宽度大于 60 像素就很接近了
+                is_close = True
             # 返回检测结果和第一个检测到的标志位置
-            return True, signs[0].tolist()
+            return is_sign, is_close, signs[0].tolist()
         
-        return False, []
+        return is_sign, is_close, []
 
     def draw_detection(self, frame, bbox):
         """在图像上绘制检测结果

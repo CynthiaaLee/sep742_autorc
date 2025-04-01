@@ -2,17 +2,56 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 from PIL import Image
+from perception.traffic_sign_detection import TrafficSignDetector
+
 
 class TrafficLightDetector:
     def __init__(self, model_path='models/best_traffic_nano_yolo.pt'):
         # 加载 YOLO 模型
         self.model = YOLO(model_path)
+        self.sign_detector = TrafficSignDetector(sign_type='light')  # 加载light的haar分类器
         
         # 保留原有的 HSV 颜色范围作为备用
         self.red_range = [([0, 100, 100], [10, 255, 255]), 
                          ([160, 100, 100], [180, 255, 255])]
         self.yellow_range = ([20, 100, 100], [30, 255, 255])
         self.green_range = ([40, 100, 100], [80, 255, 255])
+
+
+
+    def detect_by_sign_and_color(self, image):
+        """
+        使用Haar cascade检测疑似交通灯，再分析该区域的颜色判断灯色
+        返回: (color, bbox)
+        """
+        found, _, bbox = self.sign_detector.detect(image)
+        if not found or not bbox:
+            return None, None
+        
+        x, y, w, h = bbox
+        roi = image[y:y+h, x:x+w]
+        
+        hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        red_mask = self._detect_color(hsv_roi, self.red_range)
+        yellow_mask = self._detect_color(hsv_roi, [self.yellow_range])
+        green_mask = self._detect_color(hsv_roi, [self.green_range])
+        
+        masks = {"red": red_mask, "yellow": yellow_mask, "green": green_mask}
+        max_area = 0
+        detected_color = None
+        
+        for color, mask in masks.items():
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for cnt in contours:
+                area = cv2.contourArea(cnt)
+                if area > max_area and area > 50:  # 阈值可调
+                    max_area = area
+                    detected_color = color
+        
+        if detected_color:
+            return detected_color, bbox
+        else:
+            return None, None
 
     def detect(self, image):
         """

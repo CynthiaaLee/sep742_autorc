@@ -1,5 +1,5 @@
 import logging
-# from control.vehicle_control import VehicleController
+from control.vehicle_control import VehicleController
 from perception.lane_detection import LaneDetector
 from perception.traffic_sign_detection import TrafficSignDetector
 from perception.traffic_light_detection import TrafficLightDetector
@@ -8,6 +8,7 @@ from utils.config import *
 from datetime import datetime
 import os
 import cv2
+from logic.perception_memory import PerceptionTracker
 
 def save_frame(frame, directory="debug_frames"):
     os.makedirs(directory, exist_ok=True)
@@ -35,6 +36,9 @@ class AutoDriver:
             self.stop_sign_detector = TrafficSignDetector('stop')
             self.light_detector = TrafficLightDetector()
             self.decision_maker = DecisionMaker()
+            self.stop_sign_tracker = PerceptionTracker()
+            self.light_color_tracker = PerceptionTracker()
+
         except Exception as e:
             self.logger.error(f"Initialization error: {str(e)}")
             raise
@@ -61,8 +65,8 @@ class AutoDriver:
                 self.fps = 30  # 默认摄像头帧率
                 self.video_writer = None
 
-            # self.vehicle_ctx = VehicleController()
-            # self.vehicle = self.vehicle_ctx.__enter__()
+            self.vehicle_ctx = VehicleController()
+            self.vehicle = self.vehicle_ctx.__enter__()
 
             return self
         except Exception as e:
@@ -115,38 +119,43 @@ class AutoDriver:
                     seconds = int((current_time_ms % 60000) // 1000)
                     self.logger.info(f"[Video Time] {minutes:02d}:{seconds:02d}")
 
-                # Perception
                 steering_angle, lane_lines = self.lane_detector.detect(frame)
-                is_stop_sign, stop_bbox = self.stop_sign_detector.detect(frame)
-                light = self.light_detector.detect(frame)
+                is_stop_sign, is_stop_sign_close, stop_bbox = self.stop_sign_detector.detect(frame)
+                # light_color, light_box = self.light_detector.detect(frame)
+                light_color, light_box = self.light_detector.detect_by_sign_and_color(frame)
 
-                is_close = False
-                if is_stop_sign and stop_bbox:
-                    _, _, w, _ = stop_bbox
-                    if w >= MIN_STOP_SIGN_WIDTH:  # 假设宽度大于 60 像素就很接近了
-                        is_close = True
+                # 更新历史
+                self.stop_sign_tracker.update(is_stop_sign_close)
+                self.light_color_tracker.update(light_color)
+
+                # 判断稳定状态
+                is_stop_sign_stable = self.stop_sign_tracker.recently_true(min_count=3)
+                stable_light = self.light_color_tracker.most_common(min_count=5)
+
 
                 if self.debug:
                     self.logger.info(
-                        f"[Perception] Lane angle: {steering_angle:.2f}, is_stop_sign: {is_stop_sign}, "
-                        f"stop_sign_close: {is_close}, stop_bbox: {stop_bbox}, light: {light}"
+                        f"[Perception] Lane angle: {steering_angle:.2f}, "
+                        f"is_stop_sign: {is_stop_sign}, is_stop_sign_stable: {is_stop_sign_stable}, "
+                        f"stop_sign_close: {is_stop_sign_close}, stop_bbox: {stop_bbox}, "
+                        f"light: {light_color}, stable light: {stable_light}, light_box: {light_box}"
                     )
 
                 # Decision making
                 decision = self.decision_maker.make_decision(
-                    steering_angle, is_close, light
+                    steering_angle, is_stop_sign_stable, stable_light
                 )
                 print(f"Decision: {decision}")
 
                 # Control execution
                 if decision['action'] == 'stop':
-                    # self.vehicle.stop()
+                    self.vehicle.stop()
                     print("Stopping vehicle")
                 else:
                     print("Driving vehicle")
                     print(f"Steering: {decision['steering']:.2f} → {decision['direction']} ({decision['strength']}%)")
-                    # self.vehicle.drive_forward()
-                    # self.vehicle.adjust_steering(decision['direction'], decision['strength'])
+                    self.vehicle.drive_forward()
+                    self.vehicle.adjust_steering(decision['direction'], decision['strength'])
 
                 # 可视化 & 输出视频帧
                 if self.debug:
@@ -154,22 +163,26 @@ class AutoDriver:
 
                     # Draw perception info
                     cv2.putText(display_frame, f"Steering: {steering_angle:.2f}", (10, 60),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
                     if is_stop_sign:
-                        label = "Stop Sign (CLOSE)" if is_close else "Stop Sign (far)"
-                        cv2.putText(display_frame, label, (10, 100),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 100, 255), 2)
+                        s_x, s_y, s_w, s_h = stop_bbox
+                        cv2.rectangle(display_frame, (s_x, s_y), (s_x+s_w, s_y+s_h), (0, 100, 255), 2)
+                    cv2.putText(display_frame, f"Stop Sign: {is_stop_sign}, Close: {is_stop_sign_close}, Close&Stable: {is_stop_sign_stable}", (10, 120),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
-                    cv2.putText(display_frame, f"Traffic Light: {light}", (10, 140),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+                    if light_box:
+                        l_x, l_y, l_w, l_h = light_box
+                        cv2.rectangle(display_frame, (l_x, l_y), (l_x+l_w, l_y+l_h), (255, 255, 0), 2)
+                    cv2.putText(display_frame, f"Traffic Light: {light_color}, Stable Light: {stable_light}", (10, 140),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
                     cv2.putText(display_frame, f"Action: {decision['action']}", (10, 180),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
                     cv2.putText(display_frame, f"Direction: {decision['direction']}", (10, 220),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
                     cv2.putText(display_frame, f"Strength: {decision['strength']}%", (10, 260), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
                     # ✅ Draw detected lane lines
                     for (x1, y1, x2, y2) in lane_lines:
@@ -180,7 +193,7 @@ class AutoDriver:
                         self.video_writer.write(display_frame)
 
                     # 保存关键帧图像
-                    if is_close:
+                    if is_stop_sign_stable or stable_light:
                         save_frame(display_frame)
 
         except KeyboardInterrupt:

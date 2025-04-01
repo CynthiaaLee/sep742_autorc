@@ -11,8 +11,8 @@ class TestTrafficLightDetector(unittest.TestCase):
         cls.detector = TrafficLightDetector()
         
         # 设置测试图片目录
-        cls.test_dir = os.path.join(os.path.dirname(__file__), '../models/traffic_lights')
-        cls.output_dir = os.path.join(os.path.dirname(__file__), '../output/traffic_lights')
+        cls.test_dir = os.path.join(os.path.dirname(__file__), '../models/lights')
+        cls.output_dir = os.path.join(os.path.dirname(__file__), '../output/lights')
         os.makedirs(cls.output_dir, exist_ok=True)
         
         # 获取所有测试图片
