@@ -12,22 +12,8 @@ def test_throttle():
             car.steering_center()
             time.sleep(1)
             while True:
+
                 print('-------------------')
-                print('drive_neutral')
-                car.drive_neutral()
-                time.sleep(5)
-
-                print('drive_forward')
-                car.drive_forward()
-                time.sleep(2)
-
-                print('drive_neutral')
-                car.drive_neutral()
-                time.sleep(5)
-
-                print('drive_backward')
-                car.drive_backward()
-                time.sleep(2)
 
                 print('drive_neutral')
                 car.drive_neutral()
@@ -37,14 +23,15 @@ def test_throttle():
                 car.drive_forward()
                 time.sleep(2)
 
-                print('drive_neutral')
-                car.drive_neutral()
-                time.sleep(5)
-                car.stop()
+                # print('drive_neutral')
+                # car.drive_neutral()
+                # time.sleep(5)
+                # car.stop()
 
-                print('drive_backward')
-                car.drive_backward()
-                time.sleep(2)
+                # print('drive_backward')
+                # car.drive_backward()
+                # time.sleep(2)
+                
     except KeyboardInterrupt:
         print("\n🛑 检测到 KeyboardInterrupt，已安全退出程序。")
     except Exception as e:
@@ -55,7 +42,7 @@ def test_steering():
 
     try:
         with VehicleController() as car:
-            time.sleep(5)
+            time.sleep(2)
             car.drive_neutral()
             car.steering_center()
             time.sleep(1)
