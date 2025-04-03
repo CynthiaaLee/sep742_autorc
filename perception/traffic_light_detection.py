@@ -59,7 +59,7 @@ class TrafficLightDetector:
         返回: (color, bbox), color为'red', 'yellow', 'green'或None
         """
         # 运行 YOLO 检测
-        image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+        # image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
         results = self.model.predict(source=image, conf=0.25)
         
         if not results or len(results) == 0:

@@ -1,0 +1,7 @@
+venv/
+output/
+.vscode
+*.png
+*.jpg
+*.mp4
+*/__pycache__/
