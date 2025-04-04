@@ -29,17 +29,17 @@ class DecisionMaker:
             return self._build_decision('stop', 0)
 
         # 检测到新的 stop sign，开始等待流程
-        if is_stop_sign:
+        if is_stop_sign or light_data in ['red', 'yellow']:
             self.stop_start_time = time.time()
             self.waiting_for_stop_to_complete = True
             self.current_state = VehicleState.STOPPED
             print("Stop sign detected, initiating stop.")
             return self._build_decision('stop', 0)
 
-        # 红灯或黄灯
-        if light_data in ['red', 'yellow']:
-            self.current_state = VehicleState.STOPPED
-            return self._build_decision('stop', 0)
+        # # 红灯或黄灯
+        # if light_data in ['red', 'yellow']:
+        #     self.current_state = VehicleState.STOPPED
+        #     return self._build_decision('stop', 0)
 
         # 正常行驶
         self.current_state = VehicleState.NORMAL
@@ -60,5 +60,5 @@ class DecisionMaker:
         if abs(angle) < 5:
             return 'straight', 0
         direction = 'left' if angle < 0 else 'right'
-        strength = int((min(abs(angle), 45) / 45) * 100)
+        strength = int((min(abs(angle), 45) / 45) * 160)
         return direction, strength

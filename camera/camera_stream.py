@@ -9,6 +9,8 @@ class CameraStream:
         self.camera_config = self.camera.create_video_configuration(
             main={"size": resolution, "format": "XRGB8888"}
         )
+        self.width = resolution[0]
+        self.height = resolution[1]
         self.camera.configure(self.camera_config)
         self.save_directory = os.path.expanduser("~/Videos")
         self.is_recording = False
