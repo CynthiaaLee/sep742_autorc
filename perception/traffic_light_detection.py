@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from ultralytics import YOLO
+# from ultralytics import YOLO
 from PIL import Image
 from perception.traffic_sign_detection import TrafficSignDetector
 
@@ -8,7 +8,7 @@ from perception.traffic_sign_detection import TrafficSignDetector
 class TrafficLightDetector:
     def __init__(self, model_path='models/best_traffic_nano_yolo.pt'):
         # 加载 YOLO 模型
-        self.model = YOLO(model_path)
+        # self.model = YOLO(model_path)
         self.sign_detector = TrafficSignDetector(sign_type='light')  # 加载light的haar分类器
         
         # 保留原有的 HSV 颜色范围作为备用
@@ -53,64 +53,64 @@ class TrafficLightDetector:
         else:
             return None, None
 
-    def detect(self, image):
-        """
-        使用 YOLO 模型检测交通信号灯
-        返回: (color, bbox), color为'red', 'yellow', 'green'或None
-        """
-        # 运行 YOLO 检测
-        # image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
-        results = self.model.predict(source=image, conf=0.25)
+    # def detect(self, image):
+    #     """
+    #     使用 YOLO 模型检测交通信号灯
+    #     返回: (color, bbox), color为'red', 'yellow', 'green'或None
+    #     """
+    #     # 运行 YOLO 检测
+    #     # image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+    #     results = self.model.predict(source=image, conf=0.25)
         
-        if not results or len(results) == 0:
-            return self._detect_by_color(image)  # 使用颜色检测作为备用
+    #     if not results or len(results) == 0:
+    #         return self._detect_by_color(image)  # 使用颜色检测作为备用
             
-        # 获取最高置信度的检测结果
-        result = results[0]
-        if len(result.boxes) == 0:
-            return None, None
+    #     # 获取最高置信度的检测结果
+    #     result = results[0]
+    #     if len(result.boxes) == 0:
+    #         return None, None
             
-        # 获取边界框和类别
-        box = result.boxes[0]
-        cls_id = int(box.cls[0])
-        conf = float(box.conf[0])
+    #     # 获取边界框和类别
+    #     box = result.boxes[0]
+    #     cls_id = int(box.cls[0])
+    #     conf = float(box.conf[0])
         
-        # 映射类别ID到颜色
-        color_map = {0: 'red', 1: 'yellow', 2: 'green'}
-        color = color_map.get(cls_id)
+    #     # 映射类别ID到颜色
+    #     color_map = {0: 'red', 1: 'yellow', 2: 'green'}
+    #     color = color_map.get(cls_id)
         
-        # 转换边界框格式
-        x1, y1, x2, y2 = map(int, box.xyxy[0])
-        bbox = (x1, y1, x2-x1, y2-y1)
+    #     # 转换边界框格式
+    #     x1, y1, x2, y2 = map(int, box.xyxy[0])
+    #     bbox = (x1, y1, x2-x1, y2-y1)
         
-        return color, bbox
+    #     return color, bbox
 
-    def _detect_by_color(self, image):
-        """原有的基于颜色的检测方法作为备用"""
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    # def _detect_by_color(self, image):
+    #     """原有的基于颜色的检测方法作为备用"""
+    #     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         
-        # 检测各种颜色
-        red_mask = self._detect_color(hsv, self.red_range)
-        yellow_mask = self._detect_color(hsv, [self.yellow_range])
-        green_mask = self._detect_color(hsv, [self.green_range])
+    #     # 检测各种颜色
+    #     red_mask = self._detect_color(hsv, self.red_range)
+    #     yellow_mask = self._detect_color(hsv, [self.yellow_range])
+    #     green_mask = self._detect_color(hsv, [self.green_range])
 
-        # 确定最强的信号
-        masks = {"red": red_mask, "yellow": yellow_mask, "green": green_mask}
-        detected_color = None
-        max_area = 0
-        bbox = None
+    #     # 确定最强的信号
+    #     masks = {"red": red_mask, "yellow": yellow_mask, "green": green_mask}
+    #     detected_color = None
+    #     max_area = 0
+    #     bbox = None
 
-        for color, mask in masks.items():
-            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, 
-                                         cv2.CHAIN_APPROX_SIMPLE)
-            for cnt in contours:
-                area = cv2.contourArea(cnt)
-                if area > max_area and area > 100:  # 最小面积阈值
-                    max_area = area
-                    detected_color = color
-                    bbox = cv2.boundingRect(cnt)
+    #     for color, mask in masks.items():
+    #         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, 
+    #                                      cv2.CHAIN_APPROX_SIMPLE)
+    #         for cnt in contours:
+    #             area = cv2.contourArea(cnt)
+    #             if area > max_area and area > 100:  # 最小面积阈值
+    #                 max_area = area
+    #                 detected_color = color
+    #                 bbox = cv2.boundingRect(cnt)
 
-        return detected_color, bbox
+    #     return detected_color, bbox
 
     def _detect_color(self, hsv, ranges):
         """检测特定颜色范围"""

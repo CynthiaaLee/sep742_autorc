@@ -14,7 +14,8 @@ class LaneDetector:
         white_mask = cv2.inRange(hsv, lower_white, upper_white)
 
         # 只取底部区域
-        roi = white_mask[int(height * 0.6):, :]
+        pct = 0.6
+        roi = white_mask[int(height * pct):, :]
         edges = cv2.Canny(roi, 50, 150)
 
         lines = cv2.HoughLinesP(edges, 1, np.pi/180, 50,
@@ -23,7 +24,7 @@ class LaneDetector:
         left_lines = []
         right_lines = []
         line_segments = []
-        roi_offset = int(height * 0.6)
+        roi_offset = int(height * pct)
 
         if lines is not None:
             for line in lines:

@@ -67,7 +67,9 @@ class AutoDriver:
 
             fourcc = cv2.VideoWriter_fourcc(*'avc1')
             os.makedirs("output", exist_ok=True)
-            self.video_writer = cv2.VideoWriter("output/autodrive_result.mp4", fourcc, self.fps, (self.width, self.height))
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
+            filename = f"output/autodrive_result_{timestamp}.mp4"
+            self.video_writer = cv2.VideoWriter(filename, fourcc, self.fps, (self.width, self.height))
 
             self.vehicle_ctx = VehicleController()
             self.vehicle = self.vehicle_ctx.__enter__()
@@ -152,7 +154,7 @@ class AutoDriver:
 
                 # 判断稳定状态
                 is_stop_sign_stable = self.stop_sign_tracker.recently_true(min_count=3)
-                stable_light = self.light_color_tracker.most_common(min_count=3)
+                stable_light = self.light_color_tracker.most_common(min_count=2)
 
 
                 if self.debug:

@@ -16,12 +16,10 @@ PWM_CONFIG = {
 
 SPEED_CONFIG = {
     'NEUTRAL_MS': 1.5,
-    # 'FORWARD_MS': 1.32,
-    # 'BACKWARD_MS': 1.60,
+    # 'FORWARD_MS': 1.15,
+    # 'BACKWARD_MS': 1.65,
     'FORWARD_MS': 1.32,
     'BACKWARD_MS': 1.64,
-    # 'FORWARD_MS': 1.2,
-    # 'BACKWARD_MS': 1.60,
 }
 
 STEERING_CONFIG = {
@@ -29,10 +27,4 @@ STEERING_CONFIG = {
     'MAX_DUTY_DIFF': 11
 }
 
-# # Image Processing
-# ROI_HEIGHT = 100  # Height of region of interest
-# ROI_OFFSET = 100  # Offset from bottom of frame
-# BLUR_KERNEL_SIZE = (5, 5)
-# MIN_CONTOUR_AREA = 500
-
-MIN_STOP_SIGN_WIDTH = 152  # 根据你图像分辨率调整这个阈值
+MIN_STOP_SIGN_WIDTH = 130  # 根据你图像分辨率调整这个阈值
