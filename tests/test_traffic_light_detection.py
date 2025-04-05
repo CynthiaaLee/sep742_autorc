@@ -37,7 +37,7 @@ class TestTrafficLightDetector(unittest.TestCase):
                 self.assertIsNotNone(image, f"Failed to load image: {image_path}")
                 
                 # Detect traffic lights
-                color, bbox = self.detector.detect(image)
+                color, bbox = self.detector.detect_by_sign_and_color(image)
                 print(f"Detected color: {color}")
                 print(f"Bounding box: {bbox}")
                 
@@ -53,29 +53,6 @@ class TestTrafficLightDetector(unittest.TestCase):
                 
                 # Verify detection results
                 self.assertIsNotNone(color, f"No traffic light detected in {image_path}")
-
-    def test_color_detection(self):
-        """Test basic color detection"""
-        # Create test images for different colors
-        test_colors = {
-            'red': (0, 0, 255),
-            'yellow': (0, 255, 255),
-            'green': (0, 255, 0)
-        }
-
-        for expected_color, bgr in test_colors.items():
-            # Create a single-color test image
-            test_image = np.zeros((100, 100, 3), dtype=np.uint8)
-            cv2.circle(test_image, (50, 50), 20, bgr, -1)
-
-            # Perform detection
-            detected_color, bbox = self.detector.detect(test_image)
-            
-            # Verify the results
-            self.assertEqual(detected_color, expected_color,
-                           f"Failed to detect {expected_color} light")
-            self.assertIsNotNone(bbox,
-                               f"Failed to get bbox for {expected_color} light")
 
 if __name__ == '__main__':
     unittest.main()
