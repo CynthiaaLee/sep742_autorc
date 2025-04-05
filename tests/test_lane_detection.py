@@ -1,8 +1,11 @@
-import unittest
-import cv2
 import os
+import unittest
+
+import cv2
 import numpy as np
+
 from perception.lane_detection import LaneDetector
+
 
 class TestLaneDetector(unittest.TestCase):
     def setUp(self):
@@ -17,6 +20,7 @@ class TestLaneDetector(unittest.TestCase):
         os.makedirs(self.output_dir, exist_ok=True)
 
     def get_image_files(self):
+        # Get all image files with specific extensions from the test directory
         image_extensions = ['.jpg', '.jpeg', '.png']
         return [
             os.path.join(self.test_image_dir, f)
@@ -25,6 +29,7 @@ class TestLaneDetector(unittest.TestCase):
         ]
 
     def test_lane_detection(self):
+        # Test lane detection on static images
         image_files = self.get_image_files()
         self.assertTrue(len(image_files) > 0, "No image files found in test directory")
 
@@ -34,14 +39,14 @@ class TestLaneDetector(unittest.TestCase):
                 if test_image is None:
                     self.fail(f"Failed to load test image from {image_path}")
                 
-                # 获取角度 + 车道线坐标
+                # Get steering angle and lane line coordinates
                 steering_angle, lines = self.detector.detect(test_image)
 
                 print(f"Image: {os.path.basename(image_path)}, Detected steering angle: {steering_angle:.2f}")
                 self.assertTrue(-45 <= steering_angle <= 45,
                                 f"Steering angle {steering_angle} is out of range!")
 
-                # 可视化
+                # Visualization
                 vis_image = test_image.copy()
                 cv2.putText(vis_image, f"Steering: {steering_angle:.2f}", (10, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
@@ -53,6 +58,7 @@ class TestLaneDetector(unittest.TestCase):
                 cv2.imwrite(output_path, vis_image)
 
     def test_lane_detection_on_video(self):
+        # Test lane detection on a video
         video_path = os.path.join(os.path.dirname(__file__), "../models/test_video.mp4")
         output_path = os.path.join(os.path.dirname(__file__), "../output/lane_detection_result.mp4")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -68,23 +74,23 @@ class TestLaneDetector(unittest.TestCase):
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
         frame_idx = 0
-        detection_interval = int(fps // 4)
+        detection_interval = int(fps // 4)  # Perform detection every quarter second
 
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
 
-            # 每隔一定帧检测
+            # Perform detection every few frames
             if frame_idx % detection_interval == 0:
                 steering_angle, lines = self.detector.detect(frame)
                 vis_frame = frame.copy()
 
-                # Draw steering
+                # Draw steering angle on the frame
                 cv2.putText(vis_frame, f"Steering: {steering_angle:.2f}", (10, 60),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
 
-                # Draw lanes
+                # Draw detected lane lines
                 for (x1, y1, x2, y2) in lines:
                     cv2.line(vis_frame, (x1, y1), (x2, y2), (0, 255, 255), 2)
             else:

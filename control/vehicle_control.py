@@ -1,7 +1,9 @@
-import pigpio
-from utils.config import GPIO_CONFIG, PWM_CONFIG, SPEED_CONFIG, STEERING_CONFIG
 import subprocess
 import time
+
+import pigpio
+
+from utils.config import GPIO_CONFIG, PWM_CONFIG, SPEED_CONFIG, STEERING_CONFIG
 
 print(SPEED_CONFIG)
 print(STEERING_CONFIG)
@@ -12,11 +14,10 @@ def ensure_pigpiod_running():
         if result.returncode != 0:
             print("[INFO] pigpiod is not running. Starting it now...")
             subprocess.run(['sudo', 'pigpiod'], check=True)
-            time.sleep(0.5)  # 给 pigpiod 一点启动时间
+            time.sleep(0.5)
         else:
             print("[INFO] pigpiod is already running.")
 
-        # 再次尝试连接，确认 pigpiod 成功启动
         pi = pigpio.pi()
         if not pi.connected:
             raise RuntimeError("Unable to connect to pigpiod after starting it.")
@@ -52,7 +53,7 @@ class VehicleController:
             self.pi.set_PWM_range(pin, PWM_CONFIG['RANGE'])
 
     def set_steering_percent(self, percent):
-        """控制转向，percent: -100（左）到 +100（右）"""
+        """Control steering, percent: -100 (left) to +100 (right)"""
         percent = max(-100, min(percent, 100))
         mid = STEERING_CONFIG['CENTER_DUTY']
         diff = STEERING_CONFIG['MAX_DUTY_DIFF']

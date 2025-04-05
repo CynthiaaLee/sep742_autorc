@@ -1,5 +1,7 @@
 import time
+
 from camera.camera_stream import CameraStream
+
 
 def test_camera_stream():
     with CameraStream() as camera:

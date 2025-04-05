@@ -1,19 +1,22 @@
-import unittest
-import cv2
-import os
 import glob
+import os
+import unittest
+
+import cv2
+
 from perception.traffic_sign_detection import TrafficSignDetector
+
 
 class TestTrafficSignDetector(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # 从环境变量获取 sign_type 参数，默认为 'right'
+        # Get the sign_type parameter from the environment variable, default is 'right'
         cls.sign_type = os.getenv('SIGN_TYPE', 'right')
         print(f"\nInitializing tests for {cls.sign_type} sign detection")
         
         cls.detector = TrafficSignDetector(sign_type=cls.sign_type)
         
-        # 查找所有匹配的测试图片
+        # Search for all matching test images
         search_pattern = os.path.join(
             os.path.dirname(__file__), 
             f'../models/{cls.sign_type}/*.png'
@@ -32,7 +35,7 @@ class TestTrafficSignDetector(unittest.TestCase):
     def test_sign_detection(self):
         for test_image_path in self.test_images:
             with self.subTest(image=test_image_path):                
-                # 加载测试图片
+                # Load the test image
                 test_image = cv2.imread(test_image_path)
                 if test_image is None:
                     self.fail(f"Failed to load test image from {test_image_path}")
@@ -42,11 +45,11 @@ class TestTrafficSignDetector(unittest.TestCase):
                 if h <= 0 or w <= 0:
                     self.fail(f"Invalid image dimensions: {w}x{h}")
                 
-                # 检测标志
+                # Detect the traffic sign
                 detected, bbox = self.detector.detect(test_image)
                 base_name = os.path.basename(test_image_path)
 
-                # 如果检测到，绘制结果并保存
+                # If detected, draw the result and save it
                 if detected:
                     result_image = self.detector.draw_detection(test_image.copy(), bbox)
                     result_path = os.path.join(

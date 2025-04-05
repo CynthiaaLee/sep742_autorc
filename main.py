@@ -1,15 +1,18 @@
 import logging
-from control.vehicle_control import VehicleController
-from perception.lane_detection import LaneDetector
-from perception.traffic_sign_detection import TrafficSignDetector
-from perception.traffic_light_detection import TrafficLightDetector
-from logic.decision import DecisionMaker
-from utils.config import *
-from datetime import datetime
 import os
-import cv2
-from logic.perception_memory import PerceptionTracker
 import time
+from datetime import datetime
+
+import cv2
+
+from control.vehicle_control import VehicleController
+from logic.decision import DecisionMaker
+from logic.perception_memory import PerceptionTracker
+from perception.lane_detection import LaneDetector
+from perception.traffic_light_detection import TrafficLightDetector
+from perception.traffic_sign_detection import TrafficSignDetector
+from utils.config import *
+
 
 def save_frame(frame, directory="debug_frames"):
     os.makedirs(directory, exist_ok=True)
@@ -27,7 +30,7 @@ class AutoDriver:
         self.logger = logging.getLogger('AutoDriver')
 
         self.frame_counter = 0
-        self.detection_interval = 5  # 每隔 N 帧检测一次（原来是10，改小点）
+        self.detection_interval = 5  # Detect every N frames (originally 10, reduced for faster detection)
         self.last_stop_sign_result = (False, False, None)
         self.last_light_result = (None, None)
 
@@ -61,7 +64,7 @@ class AutoDriver:
                 self.camera_ctx = CameraStream()
                 self.camera = self.camera_ctx.__enter__()
                 self.frame_source = self.camera
-                self.fps = 30  # 默认摄像头帧率
+                self.fps = 30  # Default camera frame rate
                 self.width = self.camera.width
                 self.height = self.camera.height
 
@@ -122,9 +125,9 @@ class AutoDriver:
                 elif frame.shape[2] == 1:
                     frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
-                # 每 detection_interval 帧检测一次，其他帧跳过
+                # Detect every detection_interval frames, skip others
                 if self.frame_counter % self.detection_interval != 0:
-                    # 仍写入原始帧（可选）
+                    # Still write the original frame (optional)
                     if self.video_writer:
                         self.video_writer.write(frame)
                     continue
@@ -143,19 +146,13 @@ class AutoDriver:
                 light_color, light_box = self.light_detector.detect_by_sign_and_color(frame)
                 t3 = time.time()
 
-                # steering_angle, lane_lines = self.lane_detector.detect(frame)
-                # is_stop_sign, is_stop_sign_close, stop_bbox = self.stop_sign_detector.detect(frame)
-                # # light_color, light_box = self.light_detector.detect(frame)
-                # light_color, light_box = self.light_detector.detect_by_sign_and_color(frame)
-
-                # 更新历史
+                # Update historical perception data
                 self.stop_sign_tracker.update(is_stop_sign_close)
                 self.light_color_tracker.update(light_color)
 
-                # 判断稳定状态
+                # Determine stable states
                 is_stop_sign_stable = self.stop_sign_tracker.recently_true(min_count=3)
                 stable_light = self.light_color_tracker.most_common(min_count=2)
-
 
                 if self.debug:
                     self.logger.info(
@@ -165,7 +162,7 @@ class AutoDriver:
                         f"light: {light_color}, stable light: {stable_light}, light_box: {light_box}"
                     )
 
-                # Decision making
+                # Decision-making process
                 decision = self.decision_maker.make_decision(
                     steering_angle, is_stop_sign_stable, stable_light
                 )
@@ -174,7 +171,7 @@ class AutoDriver:
                 self.logger.info(
                     f"[Profiling] Lane: {t1-t0:.3f}s, StopSign: {t2-t1:.3f}s, Light: {t3-t2:.3f}s, Other: {t4-t3:.3f}s"
                 )
-                # Control execution
+                # Execute control actions based on the decision
                 if decision['action'] == 'stop':
                     self.vehicle.drive_neutral()
                     print("Stopping vehicle")
@@ -185,7 +182,7 @@ class AutoDriver:
                     self.vehicle.drive_forward()
                     self.vehicle.adjust_steering(decision['direction'], decision['strength'])
 
-                # 可视化 & 输出视频帧
+                # Visualization & output video frame
                 if self.debug:
                     display_frame = frame.copy()
                     # Draw perception info
@@ -215,11 +212,11 @@ class AutoDriver:
                     for (x1, y1, x2, y2) in lane_lines:
                         cv2.line(display_frame, (x1, y1), (x2, y2), (0, 255, 255), 3)
 
-                    # 写入视频帧
+                    # Write the video frame
                     if self.video_writer:
                         self.video_writer.write(display_frame)                    
 
-                    # # 保存关键帧图像
+                    # # Save key frames
                     # if is_stop_sign_stable or stable_light:
                     #     save_frame(display_frame)
 
@@ -258,8 +255,8 @@ def run(debug=False, video_path=None):
 
 if __name__ == '__main__':
     try:
-        video_path = None  # ← 使用摄像头
-        # video_path = "models/test_video.mp4"  # ← 或者换成你的视频路径
+        video_path = None  # ← Use camera
+        # video_path = "models/test_video.mp4"  # ← Or replace with your video path
         run(debug=True, video_path=video_path)
     except Exception as e:
         logging.error(f"System error: {str(e)}")

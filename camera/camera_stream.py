@@ -1,9 +1,12 @@
-from picamera2 import Picamera2
-import picamera2.encoders
-from datetime import datetime
 import os
+from datetime import datetime
+
+import picamera2.encoders
+from picamera2 import Picamera2
+
 
 class CameraStream:
+    """A class to manage camera streaming and recording using Picamera2."""
     def __init__(self, resolution=(640, 480)):
         self.camera = Picamera2()
         self.camera_config = self.camera.create_video_configuration(

@@ -10,8 +10,8 @@ GPIO_CONFIG = {
 }
 
 PWM_CONFIG = {
-    'FREQUENCY': 50,  # 通用频率
-    'RANGE': 1000     # 比较高的精度
+    'FREQUENCY': 50, # PWM frequency in Hz
+    'RANGE': 1000 # PWM range
 }
 
 SPEED_CONFIG = {
@@ -27,4 +27,4 @@ STEERING_CONFIG = {
     'MAX_DUTY_DIFF': 11
 }
 
-MIN_STOP_SIGN_WIDTH = 130  # 根据你图像分辨率调整这个阈值
+MIN_STOP_SIGN_WIDTH = 130 # Minimum width of stop sign to be considered close

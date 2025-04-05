@@ -1,10 +1,10 @@
-import sys
 import time
 
 from control.vehicle_control import VehicleController
 
+
 def test_throttle():
-    print("开始测试油门...")
+    print("Start testing throttle...")
     try:
         with VehicleController() as car:
             time.sleep(5)
@@ -33,12 +33,12 @@ def test_throttle():
                 # time.sleep(2)
                 
     except KeyboardInterrupt:
-        print("\n🛑 检测到 KeyboardInterrupt，已安全退出程序。")
+        print("\n🛑 Detected KeyboardInterrupt, safely exiting the program.")
     except Exception as e:
-        print(f"❌ 测试过程中发生错误: {str(e)}")
+        print(f"❌ An error occurred during the test: {str(e)}")
 
 def test_steering():
-    print("开始测试转向...")
+    print("Start testing steering...")
 
     try:
         with VehicleController() as car:
@@ -48,59 +48,59 @@ def test_steering():
             time.sleep(1)
 
             while True:
-                print("✅ 转向测试开始...")
+                print("✅ Steering test begins...")
                 time.sleep(1)
 
-                # 中间位置
-                print("🎯 回正方向")
+                # Center position
+                print("🎯 Reset to center")
                 car.steering_center()
                 time.sleep(1)
 
-                # 小角度右转
-                print("➡️ 右转 30%")
+                # Small right turn
+                print("➡️ Turn right 30%")
                 car.adjust_steering('right', 30)
                 time.sleep(1)
 
-                # 中角度右转
-                print("➡️ 右转 60%")
+                # Medium right turn
+                print("➡️ Turn right 60%")
                 car.adjust_steering('right', 60)
                 time.sleep(1)
 
-                # 最大角度右转
-                print("➡️ 右转 100%")
+                # Maximum right turn
+                print("➡️ Turn right 100%")
                 car.adjust_steering('right', 100)
                 time.sleep(1)
 
-                # 回中
-                print("🎯 回正方向")
+                # Back to center
+                print("🎯 Reset to center")
                 car.steering_center()
                 time.sleep(1)
 
-                # 小角度左转
-                print("⬅️ 左转 30%")
+                # Small left turn
+                print("⬅️ Turn left 30%")
                 car.adjust_steering('left', 30)
                 time.sleep(1)
 
-                # 中角度左转
-                print("⬅️ 左转 60%")
+                # Medium left turn
+                print("⬅️ Turn left 60%")
                 car.adjust_steering('left', 60)
                 time.sleep(1)
 
-                # 最大角度左转
-                print("⬅️ 左转 100%")
+                # Maximum left turn
+                print("⬅️ Turn left 100%")
                 car.adjust_steering('left', 100)
                 time.sleep(1)
 
-                # 最后回正
-                print("🎯 回正方向")
+                # Finally back to center
+                print("🎯 Reset to center")
                 car.steering_center()
                 time.sleep(1)
 
     except KeyboardInterrupt:
-        print("\n🛑 检测到 KeyboardInterrupt，已安全退出程序。")
+        print("\n🛑 Detected KeyboardInterrupt, safely exiting the program.")
 
     except Exception as e:
-        print(f"❌ 测试过程中发生错误: {str(e)}")
+        print(f"❌ An error occurred during the test: {str(e)}")
 
 if __name__ == "__main__":
     test_throttle()

@@ -1,4 +1,5 @@
-from collections import deque, Counter
+from collections import Counter, deque
+
 
 class PerceptionTracker:
     def __init__(self, history_size=5):
@@ -9,7 +10,7 @@ class PerceptionTracker:
 
     def most_common(self, min_count=3):
         """
-        返回出现频率最高且出现次数不低于 min_count 的值
+        Returns the most common value in the history that appears at least min_count times.
         """
         counter = Counter(self.history)
         if not counter:
@@ -20,5 +21,5 @@ class PerceptionTracker:
         return None
 
     def recently_true(self, min_count=3):
-        """判断 True 是否在历史中出现次数达到阈值"""
+        """Returns True if True appears at least min_count times in the history."""
         return sum(1 for v in self.history if v) >= min_count

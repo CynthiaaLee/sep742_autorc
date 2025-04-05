@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 class LaneDetector:
     def __init__(self):
         self.prev_steering = 0
@@ -13,7 +14,7 @@ class LaneDetector:
         upper_white = np.array([180, 30, 255])
         white_mask = cv2.inRange(hsv, lower_white, upper_white)
 
-        # 只取底部区域
+        # Only take the bottom region
         pct = 0.6
         roi = white_mask[int(height * pct):, :]
         edges = cv2.Canny(roi, 50, 150)
@@ -34,11 +35,11 @@ class LaneDetector:
                 line_segments.append((x1, y1, x2, y2))
 
                 if x2 - x1 == 0:
-                    continue  # 忽略垂直线
+                    continue  # Ignore vertical lines
 
                 slope = (y2 - y1) / (x2 - x1)
                 if abs(slope) < 0.5:
-                    continue  # 忽略平的线
+                    continue  # Ignore flat lines
 
                 if slope < 0:
                     left_lines.append((x1, y1, x2, y2))
@@ -48,14 +49,14 @@ class LaneDetector:
         left_avg = self._average_line(left_lines, height)
         right_avg = self._average_line(right_lines, height)
 
-        # 可视化线段
+        # Visualize line segments
         display_lines = []
         if left_avg:
             display_lines.append(left_avg)
         if right_avg:
             display_lines.append(right_avg)
 
-        # 计算车道中心 → steering angle
+        # Calculate lane center → steering angle
         center_x = width // 2
         lane_center = center_x  # fallback: assume straight
 
@@ -71,9 +72,9 @@ class LaneDetector:
             lane_center = rx2 - 100
 
         deviation = lane_center - center_x
-        steering = deviation / (width // 2) * 45  # 映射到 ±45°
+        steering = deviation / (width // 2) * 45  # Map to ±45°
 
-        # 平滑处理
+        # Smooth processing
         steering = 0.8 * self.prev_steering + 0.2 * steering
         self.prev_steering = steering
 
