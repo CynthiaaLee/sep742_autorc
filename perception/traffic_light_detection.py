@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+@Author: Jieying Li
+@Created Date: 2025-04-04 22:41:08
+@Path: /perception/traffic_light_detection.py
+"""
+
+
 import cv2
 import numpy as np
 from PIL import Image

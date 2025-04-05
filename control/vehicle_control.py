@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+@Author: Jieying Li
+@Created Date: 2025-04-04 22:41:08
+@Path: /control/vehicle_control.py
+"""
+
+
 import subprocess
 import time
 

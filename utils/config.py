@@ -1,4 +1,9 @@
-# Configuration parameters for autonomous RC car
+# -*- coding: utf-8 -*-
+"""
+@Author: Jieying Li
+@Created Date: 2025-04-04 14:01:55
+@Path: /utils/config.py
+"""
 
 # Camera Settings
 CAMERA_RESOLUTION = (640, 480)
